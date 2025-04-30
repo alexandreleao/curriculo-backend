@@ -43,7 +43,7 @@ class ProjectController extends Controller
     
         Project::create($validated);
     
-        return redirect()->route('projects.dashboard')->with('success', 'Projeto cadastrado com sucesso!');
+        return redirect()->route('projects.index')->with('success', 'Projeto cadastrado com sucesso!');
     }
 
     /**
@@ -110,16 +110,14 @@ class ProjectController extends Controller
 }
 
 public function search(Request $request){
-    $search = strtolower($request->input('search'));
-
-    $projects = Project::whereRaw('LOWER(title) LIKE ?', ["%{$search}%"])
-        ->orWhereRaw('LOWER(description) LIKE ?', ["%{$search}%"])
+    $search = $request->input('search');
+    $projects = Project::query()
+        ->where('title', 'like', "%{$search}%")
+        ->orWhere('description', 'like', "%{$search}%")
+        ->latest()
         ->get();
-
     
     return view('dashboard', compact('projects'));
-    
-
 
 }
    

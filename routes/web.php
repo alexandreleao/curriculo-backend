@@ -1,39 +1,43 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProjectController;
 use Illuminate\Http\Request;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-
-
+require __DIR__.'/auth.php';
 
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Dashboard
+    Route::get('/dashboard', [ProjectController::class, 'index'])->name('dashboard');
+
+    // Toggle Dark Mode
+    Route::post('/toggle-dark-mode', function (Request $request) {
+        session(['dark_mode' => !session('dark_mode', false)]);
+        return back();
+    })->name('toggle-dark-mode');
+
+    // Profile Routes
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+        Route::patch('/', [ProfileController::class, 'update'])->name('update');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
+    });
+
+    // Project Routes
+    Route::prefix('projects')->name('projects.')->group(function () {
+        Route::get('/', [ProjectController::class, 'index'])->name('index');
+        Route::get('/create', [ProjectController::class, 'create'])->name('create');
+        Route::post('/', [ProjectController::class, 'store'])->name('store');
+        Route::get('/{project}/edit', [ProjectController::class, 'edit'])->name('edit');
+        Route::put('/{project}', [ProjectController::class, 'update'])->name('update');
+        Route::delete('/{project}', [ProjectController::class, 'destroy'])->name('destroy');
+        Route::get('/search', [ProjectController::class, 'search'])->name('search');
+    });
+
 });
-
-Route::post('/toggle-dark-mode', function (Request $request) {
-    session(['dark_mode' => !session('dark_mode', false)]);
-    return back();
-})->name('toggle-dark-mode');
-
-
-Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
-Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
-Route::get('/projects', [ProjectController::class, 'index'])->name('projects.dashboard');
-Route::get('/dashboard', [ProjectController::class, 'index'])->middleware(['auth'])->name('dashboard');
-
-Route::get('/projetos/{id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
-Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
-Route::delete('/projetos/{id}', [ProjectController::class, 'destroy'])->name('projects.destroy');
-
-Route::get('/projects/search', [ProjectController::class, 'search'])->name('projects.search');
-
-
-require __DIR__.'/auth.php';
