@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Project;
@@ -9,16 +8,16 @@ use Illuminate\Support\Facades\Storage;
 class ProjectController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Lista os projetos cadastrados.
      */
     public function index()
     {
         $projects = Project::latest()->paginate(6);
-
-        return view('dashboard', compact('projects'));    }
+        return view('dashboard', compact('projects'));
+    }
 
     /**
-     * Show the form for creating a new resource.
+     * Mostra o formulário para criar novo projeto.
      */
     public function create()
     {
@@ -26,103 +25,88 @@ class ProjectController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Armazena um novo projeto no banco de dados.
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'imagem' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
-    
-        if ($request->hasFile('imagem')) {
-            $path = $request->file('imagem')->store('projects', 'public');
-            $validated['imagem'] = $path;
+        $data = $this->validateProject($request);
+
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('projects', 'public');
         }
-    
-        Project::create($validated);
-    
+
+        Project::create($data);
+
         return redirect()->route('projects.index')->with('success', 'Projeto cadastrado com sucesso!');
     }
 
     /**
-     * Display the specified resource.
+     * Mostra o formulário de edição de um projeto.
      */
-    public function show(Project $project)
+    public function edit(Project $project)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        $project = Project::findOrFail($id);
-
         return view('projects.edit', compact('project'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Atualiza os dados de um projeto existente.
      */
     public function update(Request $request, Project $project)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'imagem' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-    
-        $data = $request->only(['title', 'description']);
-    
-        // Se houver nova imagem
-        if ($request->hasFile('imagem')) {
-            // Apaga a imagem antiga
-            if ($project->imagem && Storage::exists($project->imagem)) {
-                Storage::delete($project->imagem);
+        $data = $this->validateProject($request);
+
+        if ($request->hasFile('image')) {
+            if ($project->image && Storage::disk('public')->exists($project->image)) {
+                Storage::disk('public')->delete($project->image);
             }
-    
-            $imagePath = $request->file('imagem')->store('projects', 'public');
-            $data['imagem'] = $imagePath;
+
+            $data['image'] = $request->file('image')->store('projects', 'public');
         }
-    
+
         $project->update($data);
-        return redirect()->route('projects.dashboard')->with('message', 'Projeto atualizado com sucesso!');
-    
+
+        return redirect()->route('projects.index')->with('success', 'Projeto atualizado com sucesso!');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove um projeto do banco de dados.
      */
     public function destroy(Project $project)
     {
-        // Deleta a imagem do disco
-    if ($project->image && Storage::exists($project->image)) {
-        Storage::delete($project->image);
+        if ($project->image && Storage::disk('public')->exists($project->image)) {
+            Storage::disk('public')->delete($project->image);
+        }
+
+        $project->delete();
+
+        return back()->with('success', 'Projeto excluído com sucesso!');
     }
 
-    $project->delete();
+    /**
+     * Realiza a busca de projetos por título ou descrição.
+     */
+    public function search(Request $request)
+    {
+        $search = $request->input('search');
 
-    return back()->with('success', 'Projeto excluído com sucesso!');
+        $projects = Project::query()
+            ->where('title', 'like', "%{$search}%")
+            ->orWhere('description', 'like', "%{$search}%")
+            ->latest()
+            ->get();
 
+        return view('dashboard', compact('projects'));
+    }
+
+    /**
+     * Validação dos dados do projeto.
+     */
+    private function validateProject(Request $request): array
+    {
+        return $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+    }
 }
-
-public function search(Request $request){
-    $search = $request->input('search');
-    $projects = Project::query()
-        ->where('title', 'like', "%{$search}%")
-        ->orWhere('description', 'like', "%{$search}%")
-        ->latest()
-        ->get();
-    
-    return view('dashboard', compact('projects'));
-
-}
-   
-
-}
-
-
-    
