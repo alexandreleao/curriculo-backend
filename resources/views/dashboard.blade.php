@@ -17,6 +17,14 @@
                 </div>
             </form>
 
+            {{-- Botão para novo projeto --}}
+            <div class="mb-6">
+                <a href="{{ route('projects.create') }}"
+                    class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+                    + Novo Projeto
+                </a>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach ($projects as $project)
                 <div class="bg-gray-800 dark:bg-gray-700 rounded-lg shadow-md overflow-hidden">
