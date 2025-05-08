@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ProjectService;
+use App\Http\Requests\StoreProjectRequest;
+use App\Http\Requests\UpdateProjectRequest;
 
 class ProjectController extends Controller
 {
+    public function __construct(private ProjectService $service) {}
     /**
      * Lista os projetos cadastrados.
      */
@@ -27,16 +31,9 @@ class ProjectController extends Controller
     /**
      * Armazena um novo projeto no banco de dados.
      */
-    public function store(Request $request)
+    public function store(StoreProjectRequest $request)
     {
-        $data = $this->validateProject($request);
-
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('projects', 'public');
-        }
-
-        Project::create($data);
-
+        $this->service->create($request);
         return redirect()->route('projects.index')->with('success', 'Projeto cadastrado com sucesso!');
     }
 
@@ -51,20 +48,9 @@ class ProjectController extends Controller
     /**
      * Atualiza os dados de um projeto existente.
      */
-    public function update(Request $request, Project $project)
+    public function update(UpdateProjectRequest $request, Project $project)
     {
-        $data = $this->validateProject($request);
-
-        if ($request->hasFile('image')) {
-            if ($project->image && Storage::disk('public')->exists($project->image)) {
-                Storage::disk('public')->delete($project->image);
-            }
-
-            $data['image'] = $request->file('image')->store('projects', 'public');
-        }
-
-        $project->update($data);
-
+        $this->service->update($request, $project);
         return redirect()->route('projects.index')->with('success', 'Projeto atualizado com sucesso!');
     }
 
@@ -73,12 +59,7 @@ class ProjectController extends Controller
      */
     public function destroy(Project $project)
     {
-        if ($project->image && Storage::disk('public')->exists($project->image)) {
-            Storage::disk('public')->delete($project->image);
-        }
-
-        $project->delete();
-
+        $this->service->delete($project);
         return back()->with('success', 'Projeto excluído com sucesso!');
     }
 
@@ -98,15 +79,5 @@ class ProjectController extends Controller
         return view('dashboard', compact('projects'));
     }
 
-    /**
-     * Validação dos dados do projeto.
-     */
-    private function validateProject(Request $request): array
-    {
-        return $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-    }
+  
 }
