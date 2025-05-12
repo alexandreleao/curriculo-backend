@@ -3,20 +3,35 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use App\Services\ProjectService;
 use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
 class ProjectController extends Controller
 {
-    public function __construct(private ProjectService $service) {}
+    use AuthorizesRequests;
+    protected ProjectService $service;
+
+    public function __construct( ProjectService $service) {
+        $this->service = $service;
+    }
     /**
      * Lista os projetos cadastrados.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $projects = Project::latest()->paginate(6);
+        $search = $request->input('search');
+
+        $projects = Project::when($search, function ($query, $search) {
+                $query->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate(6)
+            ->appends(['search' => $search]);
+    
         return view('dashboard', compact('projects'));
     }
 
@@ -42,6 +57,7 @@ class ProjectController extends Controller
      */
     public function edit(Project $project)
     {
+        $this->authorize('update', $project);
         return view('projects.edit', compact('project'));
     }
 
@@ -50,7 +66,10 @@ class ProjectController extends Controller
      */
     public function update(UpdateProjectRequest $request, Project $project)
     {
+        $this->authorize('update', $project);
+        
         $this->service->update($request, $project);
+
         return redirect()->route('projects.index')->with('success', 'Projeto atualizado com sucesso!');
     }
 
@@ -59,6 +78,7 @@ class ProjectController extends Controller
      */
     public function destroy(Project $project)
     {
+        $this->authorize('delete', $project);
         $this->service->delete($project);
         return back()->with('success', 'Projeto excluído com sucesso!');
     }

@@ -11,9 +11,10 @@ class ProjectService
     public function create(Request $request): void
     {
         $data = $request->validated();
-
+        $data['user_id'] = auth()->id();
+        
         if ($request->hasFile('imagem')) {
-            $data['image'] = $request->file('imagem')->store('projects', 'public');
+            $data['imagem'] = $request->file('imagem')->store('projects', 'public');
         }
 
         Project::create($data);
@@ -24,11 +25,11 @@ class ProjectService
         $data = $request->validated();
 
         if ($request->hasFile('imagem')) {
-            if ($project->image && Storage::disk('public')->exists($project->image)) {
-                Storage::disk('public')->delete($project->image);
+            if ($project->imagem && Storage::disk('public')->exists($project->imagem)) {
+                Storage::disk('public')->delete($project->imagem);
             }
 
-            $data['image'] = $request->file('imagem')->store('projects', 'public');
+            $data['imagem'] = $request->file('imagem')->store('projects', 'public');
         }
 
         $project->update($data);
@@ -36,8 +37,8 @@ class ProjectService
 
     public function delete(Project $project): void
     {
-        if ($project->image && Storage::disk('public')->exists($project->image)) {
-            Storage::disk('public')->delete($project->image);
+        if ($project->imagem && Storage::disk('public')->exists($project->imagem)) {
+            Storage::disk('public')->delete($project->imagem);
         }
 
         $project->delete();
